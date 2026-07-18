@@ -1,43 +1,58 @@
 import React, { createContext, useState } from 'react';
 
-// Create the Context
 export const CartContext = createContext();
 
-export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState([]);
+export function CartProvider(props) {
+  const [myCartItems, setMyCartItems] = useState([]);
 
-  // Add item to cart or increase quantity if it already exists
-  const addToCart = (product) => {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find(item => item.id === product.id);
-      if (existingItem) {
-        return prevCart.map(item =>
-          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
-        );
+  function addNewItemToCart(product) {
+    let itemAlreadyInCart = false;
+    
+    // Check if item exists using a standard map
+    let updatedCart = myCartItems.map(function(item) {
+      if (item.id === product.id) {
+        itemAlreadyInCart = true;
+        return { ...item, qty: item.qty + 1 };
       }
-      return [...prevCart, { ...product, qty: 1 }];
+      return item;
     });
-  };
 
-  // Update quantity (increase/decrease)
-  const updateQty = (id, delta) => {
-    setCart((prevCart) => {
-      return prevCart.map(item => {
-        if (item.id === id) {
-          const newQty = item.qty + delta;
-          return { ...item, qty: newQty };
-        }
-        return item;
-      }).filter(item => item.qty > 0); // Remove if qty drops below 1
-    });
-  };
+    // If it wasn't found, push a new one
+    if (itemAlreadyInCart === false) {
+      updatedCart.push({ ...product, qty: 1 });
+    }
 
-  // Calculate total price
-  const cartTotal = cart.reduce((total, item) => total + (item.price * item.qty), 0);
+    setMyCartItems(updatedCart);
+  }
+
+  function changeItemQuantity(productId, amountToChange) {
+    let newCart = [];
+    
+    for (let i = 0; i < myCartItems.length; i++) {
+      let currentItem = myCartItems[i];
+      
+      if (currentItem.id === productId) {
+        currentItem.qty = currentItem.qty + amountToChange;
+      }
+      
+      // Only keep the item if quantity is greater than 0
+      if (currentItem.qty > 0) {
+        newCart.push(currentItem);
+      }
+    }
+    
+    setMyCartItems(newCart);
+  }
+
+  // Calculate total using a standard loop instead of .reduce()
+  let totalPrice = 0;
+  for (let i = 0; i < myCartItems.length; i++) {
+    totalPrice = totalPrice + (myCartItems[i].price * myCartItems[i].qty);
+  }
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, updateQty, cartTotal }}>
-      {children}
+    <CartContext.Provider value={{ cart: myCartItems, addToCart: addNewItemToCart, updateQty: changeItemQuantity, cartTotal: totalPrice }}>
+      {props.children}
     </CartContext.Provider>
   );
-};
+}
